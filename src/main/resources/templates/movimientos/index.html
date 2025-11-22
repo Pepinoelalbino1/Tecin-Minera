@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(title='Movimientos de Inventario')}">
+<th:block th:fragment="content">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-arrow-left-right"></i> Registrar Movimiento</h4>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="movimientoTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="entrada-tab" data-bs-toggle="tab" data-bs-target="#entrada" type="button">
+                            <i class="bi bi-box-arrow-in-down"></i> Entrada
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="salida-tab" data-bs-toggle="tab" data-bs-target="#salida" type="button">
+                            <i class="bi bi-box-arrow-up"></i> Salida
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content mt-3" id="movimientoTabContent">
+                    <div class="tab-pane fade show active" id="entrada" role="tabpanel">
+                        <form id="formEntrada">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Producto *</label>
+                                    <select class="form-select" id="entradaProductoId" name="productoId" required>
+                                        <option value="">Seleccione...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Cantidad *</label>
+                                    <input type="number" class="form-control" id="entradaCantidad" name="cantidad" min="1" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Motivo *</label>
+                                    <input type="text" class="form-control" id="entradaMotivo" name="motivo" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle"></i> Registrar Entrada
+                            </button>
+                        </form>
+                    </div>
+                    <div class="tab-pane fade" id="salida" role="tabpanel">
+                        <form id="formSalida">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Producto *</label>
+                                    <select class="form-select" id="salidaProductoId" name="productoId" required>
+                                        <option value="">Seleccione...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Cantidad *</label>
+                                    <input type="number" class="form-control" id="salidaCantidad" name="cantidad" min="1" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Motivo *</label>
+                                    <input type="text" class="form-control" id="salidaMotivo" name="motivo" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-x-circle"></i> Registrar Salida
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-list-ul"></i> Kardex por Producto</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Seleccione un producto para ver su kardex:</label>
+                    <select class="form-select" id="productoKardex" onchange="cargarKardex()">
+                        <option value="">Seleccione un producto...</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover" id="tablaKardex">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Cantidad</th>
+                                <th>Stock Anterior</th>
+                                <th>Stock Nuevo</th>
+                                <th>Motivo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="text-center">Seleccione un producto para ver su kardex</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </th:block>
+    
+    <th:block th:fragment="scripts">
+        <script th:inline="javascript">
+            const API_BASE = /*[[@{/api}]]*/ '';
+            
+            $(document).ready(function() {
+                cargarProductos();
+                
+                $('#formEntrada').on('submit', function(e) {
+                    e.preventDefault();
+                    registrarEntrada();
+                });
+                
+                $('#formSalida').on('submit', function(e) {
+                    e.preventDefault();
+                    registrarSalida();
+                });
+            });
+            
+            function cargarProductos() {
+                $.ajax({
+                    url: API_BASE + '/productos',
+                    method: 'GET',
+                    success: function(data) {
+                        let html = '<option value="">Seleccione...</option>';
+                        data.forEach(function(producto) {
+                            html += `<option value="${producto.id}">${producto.nombre} (Stock: ${producto.stock})</option>`;
+                        });
+                        $('#entradaProductoId').html(html);
+                        $('#salidaProductoId').html(html);
+                        $('#productoKardex').html(html);
+                    }
+                });
+            }
+            
+            function registrarEntrada() {
+                const data = {
+                    productoId: parseInt($('#entradaProductoId').val()),
+                    cantidad: parseInt($('#entradaCantidad').val()),
+                    motivo: $('#entradaMotivo').val()
+                };
+                
+                $.ajax({
+                    url: API_BASE + '/movimientos/entrada',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function() {
+                        alert('Entrada registrada exitosamente');
+                        $('#formEntrada')[0].reset();
+                        cargarProductos();
+                        if ($('#productoKardex').val() == data.productoId) {
+                            cargarKardex();
+                        }
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.message || 'Error al registrar entrada';
+                        alert(error);
+                    }
+                });
+            }
+            
+            function registrarSalida() {
+                const data = {
+                    productoId: parseInt($('#salidaProductoId').val()),
+                    cantidad: parseInt($('#salidaCantidad').val()),
+                    motivo: $('#salidaMotivo').val()
+                };
+                
+                $.ajax({
+                    url: API_BASE + '/movimientos/salida',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function() {
+                        alert('Salida registrada exitosamente');
+                        $('#formSalida')[0].reset();
+                        cargarProductos();
+                        if ($('#productoKardex').val() == data.productoId) {
+                            cargarKardex();
+                        }
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.message || 'Error al registrar salida';
+                        alert(error);
+                    }
+                });
+            }
+            
+            function cargarKardex() {
+                const productoId = $('#productoKardex').val();
+                if (!productoId) {
+                    $('#tablaKardex tbody').html('<tr><td colspan="6" class="text-center">Seleccione un producto para ver su kardex</td></tr>');
+                    return;
+                }
+                
+                $.ajax({
+                    url: API_BASE + '/movimientos/kardex/' + productoId,
+                    method: 'GET',
+                    success: function(data) {
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="6" class="text-center">No hay movimientos registrados</td></tr>';
+                        } else {
+                            data.forEach(function(mov) {
+                                const tipoClass = mov.tipo === 'ENTRADA' ? 'success' : 'danger';
+                                const fecha = new Date(mov.fecha).toLocaleString('es-PE');
+                                html += `
+                                    <tr>
+                                        <td>${fecha}</td>
+                                        <td><span class="badge bg-${tipoClass}">${mov.tipo}</span></td>
+                                        <td>${mov.cantidad}</td>
+                                        <td>${mov.stockAnterior !== null ? mov.stockAnterior : '-'}</td>
+                                        <td>${mov.stockNuevo !== null ? mov.stockNuevo : '-'}</td>
+                                        <td>${mov.motivo}</td>
+                                    </tr>
+                                `;
+                            });
+                        }
+                        $('#tablaKardex tbody').html(html);
+                    },
+                    error: function() {
+                        alert('Error al cargar kardex');
+                    }
+                });
+            }
+        </script>
+</th:block>
+

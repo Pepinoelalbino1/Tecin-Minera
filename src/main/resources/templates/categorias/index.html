@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(title='Categorías')}">
+<th:block th:fragment="content">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="bi bi-tags"></i> Gestión de Categorías</h4>
+                <button class="btn btn-light btn-sm" onclick="abrirModalCrear()">
+                    <i class="bi bi-plus-circle"></i> Nueva Categoría
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCategorias">
+                            <tr>
+                                <td colspan="4" class="text-center">Cargando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Crear/Editar -->
+        <div class="modal fade" id="modalCategoria" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitulo">Nueva Categoría</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="formCategoria">
+                        <div class="modal-body">
+                            <input type="hidden" id="categoriaId" name="id">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" id="categoriaNombre" name="nombre" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Descripción</label>
+                                <textarea class="form-control" id="categoriaDescripcion" name="descripcion" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </th:block>
+    
+    <th:block th:fragment="scripts">
+        <script th:inline="javascript">
+            const API_BASE = /*[[@{/api}]]*/ '';
+            
+            $(document).ready(function() {
+                cargarCategorias();
+                
+                $('#formCategoria').on('submit', function(e) {
+                    e.preventDefault();
+                    guardarCategoria();
+                });
+            });
+            
+            function cargarCategorias() {
+                $.ajax({
+                    url: API_BASE + '/categorias',
+                    method: 'GET',
+                    success: function(data) {
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="4" class="text-center">No hay categorías registradas</td></tr>';
+                        } else {
+                            data.forEach(function(categoria) {
+                                html += `
+                                    <tr>
+                                        <td>${categoria.id}</td>
+                                        <td>${categoria.nombre}</td>
+                                        <td>${categoria.descripcion || '-'}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-warning" onclick="editarCategoria(${categoria.id})">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="eliminarCategoria(${categoria.id})">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                        }
+                        $('#tablaCategorias').html(html);
+                    },
+                    error: function() {
+                        alert('Error al cargar categorías');
+                    }
+                });
+            }
+            
+            function abrirModalCrear() {
+                $('#categoriaId').val('');
+                $('#categoriaNombre').val('');
+                $('#categoriaDescripcion').val('');
+                $('#modalTitulo').text('Nueva Categoría');
+                new bootstrap.Modal(document.getElementById('modalCategoria')).show();
+            }
+            
+            function editarCategoria(id) {
+                $.ajax({
+                    url: API_BASE + '/categorias/' + id,
+                    method: 'GET',
+                    success: function(categoria) {
+                        $('#categoriaId').val(categoria.id);
+                        $('#categoriaNombre').val(categoria.nombre);
+                        $('#categoriaDescripcion').val(categoria.descripcion);
+                        $('#modalTitulo').text('Editar Categoría');
+                        new bootstrap.Modal(document.getElementById('modalCategoria')).show();
+                    }
+                });
+            }
+            
+            function guardarCategoria() {
+                const id = $('#categoriaId').val();
+                const data = {
+                    id: id || null,
+                    nombre: $('#categoriaNombre').val(),
+                    descripcion: $('#categoriaDescripcion').val()
+                };
+                
+                const url = id ? API_BASE + '/categorias/' + id : API_BASE + '/categorias';
+                const method = id ? 'PUT' : 'POST';
+                
+                $.ajax({
+                    url: url,
+                    method: method,
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function() {
+                        bootstrap.Modal.getInstance(document.getElementById('modalCategoria')).hide();
+                        cargarCategorias();
+                        alert('Categoría guardada exitosamente');
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.message || 'Error al guardar categoría';
+                        alert(error);
+                    }
+                });
+            }
+            
+            function eliminarCategoria(id) {
+                if (confirm('¿Está seguro de eliminar esta categoría?')) {
+                    $.ajax({
+                        url: API_BASE + '/categorias/' + id,
+                        method: 'DELETE',
+                        success: function() {
+                            cargarCategorias();
+                            alert('Categoría eliminada exitosamente');
+                        },
+                        error: function() {
+                            alert('Error al eliminar categoría');
+                        }
+                    });
+                }
+            }
+        </script>
+</th:block>
+

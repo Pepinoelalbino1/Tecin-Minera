@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(title='Guías de Remisión')}">
+<th:block th:fragment="content">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="bi bi-file-earmark-text"></i> Gestión de Guías de Remisión</h4>
+                <button class="btn btn-light btn-sm" onclick="abrirModalCrear()">
+                    <i class="bi bi-plus-circle"></i> Nueva Guía
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Fecha</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                                <th>Transportista</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaGuias">
+                            <tr>
+                                <td colspan="7" class="text-center">Cargando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Crear/Editar Guía -->
+        <div class="modal fade" id="modalGuia" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitulo">Nueva Guía de Remisión</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form id="formGuia">
+                        <div class="modal-body">
+                            <input type="hidden" id="guiaId" name="id">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Fecha de Emisión *</label>
+                                    <input type="date" class="form-control" id="guiaFechaEmision" name="fechaEmision" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Punto de Partida *</label>
+                                    <input type="text" class="form-control" id="guiaPuntoPartida" name="puntoPartida" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Punto de Llegada *</label>
+                                    <input type="text" class="form-control" id="guiaPuntoLlegada" name="puntoLlegada" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Motivo de Traslado *</label>
+                                    <input type="text" class="form-control" id="guiaMotivoTraslado" name="motivoTraslado" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Transportista *</label>
+                                    <input type="text" class="form-control" id="guiaTransportista" name="transportista" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Vehículo *</label>
+                                    <input type="text" class="form-control" id="guiaVehiculo" name="vehiculo" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Detalles -->
+        <div class="modal fade" id="modalDetalles" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Detalles de Guía</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="infoGuia" class="mb-3"></div>
+                        <hr>
+                        <h6>Productos</h6>
+                        <form id="formDetalle">
+                            <input type="hidden" id="detalleGuiaId">
+                            <div class="row">
+                                <div class="col-md-5 mb-2">
+                                    <select class="form-select" id="detalleProductoId" required>
+                                        <option value="">Seleccione producto...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <input type="number" class="form-control" id="detalleCantidad" placeholder="Cantidad" min="1" required>
+                                </div>
+                                <div class="col-md-4 mb-2">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                                        <i class="bi bi-plus"></i> Agregar
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                        <div class="table-responsive mt-3">
+                            <table class="table table-sm" id="tablaDetalles">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="button" class="btn btn-success" id="btnEmitir" onclick="emitirGuia()" style="display:none;">
+                            <i class="bi bi-check-circle"></i> Emitir Guía
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </th:block>
+    
+    <th:block th:fragment="scripts">
+        <script th:inline="javascript">
+            const API_BASE = /*[[@{/api}]]*/ '';
+            let productos = [];
+            let guiaActual = null;
+            
+            $(document).ready(function() {
+                cargarGuias();
+                cargarProductos();
+                
+                $('#formGuia').on('submit', function(e) {
+                    e.preventDefault();
+                    guardarGuia();
+                });
+                
+                $('#formDetalle').on('submit', function(e) {
+                    e.preventDefault();
+                    agregarDetalle();
+                });
+            });
+            
+            function cargarProductos() {
+                $.ajax({
+                    url: API_BASE + '/productos',
+                    method: 'GET',
+                    success: function(data) {
+                        productos = data;
+                        let html = '<option value="">Seleccione producto...</option>';
+                        data.forEach(function(prod) {
+                            html += `<option value="${prod.id}">${prod.nombre} (Stock: ${prod.stock})</option>`;
+                        });
+                        $('#detalleProductoId').html(html);
+                    }
+                });
+            }
+            
+            function cargarGuias() {
+                $.ajax({
+                    url: API_BASE + '/guias',
+                    method: 'GET',
+                    success: function(data) {
+                        let html = '';
+                        if (data.length === 0) {
+                            html = '<tr><td colspan="7" class="text-center">No hay guías registradas</td></tr>';
+                        } else {
+                            data.forEach(function(guia) {
+                                const estadoClass = guia.estado === 'EMITIDA' ? 'success' : 'warning';
+                                const fecha = new Date(guia.fechaEmision).toLocaleDateString('es-PE');
+                                html += `
+                                    <tr>
+                                        <td>${guia.numeroGuia || '-'}</td>
+                                        <td>${fecha}</td>
+                                        <td>${guia.puntoPartida}</td>
+                                        <td>${guia.puntoLlegada}</td>
+                                        <td>${guia.transportista}</td>
+                                        <td><span class="badge bg-${estadoClass}">${guia.estado}</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-info" onclick="verDetalles(${guia.id})">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            ${guia.estado === 'EMITIDA' ? `
+                                                <a href="${API_BASE}/guias/${guia.id}/pdf" class="btn btn-sm btn-danger" target="_blank">
+                                                    <i class="bi bi-file-pdf"></i> PDF
+                                                </a>
+                                            ` : ''}
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                        }
+                        $('#tablaGuias').html(html);
+                    }
+                });
+            }
+            
+            function abrirModalCrear() {
+                $('#guiaId').val('');
+                const hoy = new Date().toISOString().split('T')[0];
+                $('#guiaFechaEmision').val(hoy);
+                $('#guiaPuntoPartida').val('');
+                $('#guiaPuntoLlegada').val('');
+                $('#guiaMotivoTraslado').val('');
+                $('#guiaTransportista').val('');
+                $('#guiaVehiculo').val('');
+                $('#modalTitulo').text('Nueva Guía de Remisión');
+                new bootstrap.Modal(document.getElementById('modalGuia')).show();
+            }
+            
+            function guardarGuia() {
+                const data = {
+                    fechaEmision: $('#guiaFechaEmision').val(),
+                    puntoPartida: $('#guiaPuntoPartida').val(),
+                    puntoLlegada: $('#guiaPuntoLlegada').val(),
+                    motivoTraslado: $('#guiaMotivoTraslado').val(),
+                    transportista: $('#guiaTransportista').val(),
+                    vehiculo: $('#guiaVehiculo').val()
+                };
+                
+                $.ajax({
+                    url: API_BASE + '/guias',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function(guia) {
+                        bootstrap.Modal.getInstance(document.getElementById('modalGuia')).hide();
+                        cargarGuias();
+                        alert('Guía creada exitosamente');
+                        verDetalles(guia.id);
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.message || 'Error al guardar guía';
+                        alert(error);
+                    }
+                });
+            }
+            
+            function verDetalles(id) {
+                $.ajax({
+                    url: API_BASE + '/guias/' + id,
+                    method: 'GET',
+                    success: function(guia) {
+                        guiaActual = guia;
+                        $('#detalleGuiaId').val(guia.id);
+                        
+                        const info = `
+                            <strong>Número:</strong> ${guia.numeroGuia || 'Pendiente'}<br>
+                            <strong>Fecha:</strong> ${new Date(guia.fechaEmision).toLocaleDateString('es-PE')}<br>
+                            <strong>Origen:</strong> ${guia.puntoPartida}<br>
+                            <strong>Destino:</strong> ${guia.puntoLlegada}<br>
+                            <strong>Estado:</strong> <span class="badge bg-${guia.estado === 'EMITIDA' ? 'success' : 'warning'}">${guia.estado}</span>
+                        `;
+                        $('#infoGuia').html(info);
+                        
+                        let html = '';
+                        guia.detalles.forEach(function(det) {
+                            html += `
+                                <tr>
+                                    <td>${det.productoNombre}</td>
+                                    <td>${det.cantidad}</td>
+                                    <td>
+                                        ${guia.estado === 'BORRADOR' ? `
+                                            <button class="btn btn-sm btn-danger" onclick="eliminarDetalle(${det.id})">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        ` : ''}
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        $('#tablaDetalles tbody').html(html || '<tr><td colspan="3" class="text-center">No hay productos agregados</td></tr>');
+                        
+                        $('#btnEmitir').toggle(guia.estado === 'BORRADOR' && guia.detalles.length > 0);
+                        
+                        new bootstrap.Modal(document.getElementById('modalDetalles')).show();
+                    }
+                });
+            }
+            
+            function agregarDetalle() {
+                if (guiaActual && guiaActual.estado === 'EMITIDA') {
+                    alert('No se puede modificar una guía emitida');
+                    return;
+                }
+                
+                const data = {
+                    productoId: parseInt($('#detalleProductoId').val()),
+                    cantidad: parseInt($('#detalleCantidad').val())
+                };
+                
+                $.ajax({
+                    url: API_BASE + '/guias/' + $('#detalleGuiaId').val() + '/detalle',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function() {
+                        $('#formDetalle')[0].reset();
+                        verDetalles($('#detalleGuiaId').val());
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.message || 'Error al agregar detalle';
+                        alert(error);
+                    }
+                });
+            }
+            
+            function emitirGuia() {
+                if (!confirm('¿Está seguro de emitir esta guía? Se descontará el stock de los productos.')) {
+                    return;
+                }
+                
+                $.ajax({
+                    url: API_BASE + '/guias/' + $('#detalleGuiaId').val() + '/emitir',
+                    method: 'PUT',
+                    success: function() {
+                        alert('Guía emitida exitosamente');
+                        bootstrap.Modal.getInstance(document.getElementById('modalDetalles')).hide();
+                        cargarGuias();
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.message || 'Error al emitir guía';
+                        alert(error);
+                    }
+                });
+            }
+        </script>
+</th:block>
+
