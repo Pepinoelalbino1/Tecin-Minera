@@ -49,6 +49,14 @@ public class GuiaRemisionController {
         GuiaRemisionDTO updated = guiaService.addDetalle(id, detalleDTO);
         return ResponseEntity.ok(updated);
     }
+
+    @DeleteMapping("/{guiaId}/detalle/{detalleId}")
+    public ResponseEntity<GuiaRemisionDTO> removeDetalle(
+            @PathVariable Long guiaId,
+            @PathVariable Long detalleId) {
+        GuiaRemisionDTO updated = guiaService.removeDetalle(guiaId, detalleId);
+        return ResponseEntity.ok(updated);
+    }
     
     @PutMapping("/{id}/emitir")
     public ResponseEntity<GuiaRemisionDTO> emitir(@PathVariable Long id) {

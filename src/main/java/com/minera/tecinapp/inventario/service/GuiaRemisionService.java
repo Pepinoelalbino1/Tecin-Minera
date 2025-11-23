@@ -9,6 +9,7 @@ public interface GuiaRemisionService {
     GuiaRemisionDTO findById(Long id);
     GuiaRemisionDTO create(GuiaRemisionDTO guiaDTO);
     GuiaRemisionDTO addDetalle(Long guiaId, DetalleGuiaDTO detalleDTO);
+    GuiaRemisionDTO removeDetalle(Long guiaId, Long detalleId);
     GuiaRemisionDTO emitir(Long id);
 }
 

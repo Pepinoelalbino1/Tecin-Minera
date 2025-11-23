@@ -71,6 +71,24 @@ public class GuiaRemisionServiceImpl implements GuiaRemisionService {
         guia = guiaRepository.save(guia);
         return convertToDTO(guia);
     }
+
+    @Override
+    public GuiaRemisionDTO removeDetalle(Long guiaId, Long detalleId) {
+        GuiaRemision guia = guiaRepository.findById(guiaId)
+            .orElseThrow(() -> new ResourceNotFoundException("Guía de Remisión", guiaId));
+
+        if (guia.getEstado() == EstadoGuia.EMITIDA) {
+            throw new BusinessException("No se puede modificar una guía ya emitida");
+        }
+
+        boolean removed = guia.getDetalles().removeIf(d -> d.getId().equals(detalleId));
+        if (!removed) {
+            throw new ResourceNotFoundException("Detalle de Guía", detalleId);
+        }
+
+        guia = guiaRepository.save(guia);
+        return convertToDTO(guia);
+    }
     
     @Override
     public GuiaRemisionDTO emitir(Long id) {
